@@ -43,7 +43,7 @@ jobs:
     - name: Create or Update Lambda Function
       run: |
         FUNCTION_NAME=lambda-notificacao-pedido-lanchonete
-        ROLE_ARN=arn:aws:iam::980921738807:role/lambda-execution-role
+        ROLE_ARN=arn:aws:iam::980921738807:role/lambda-execution-role.
         ZIP_FILE_PATH=lambda_function.zip
 
         # Check if the function exists
