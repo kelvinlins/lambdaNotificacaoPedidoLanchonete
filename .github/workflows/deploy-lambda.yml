@@ -13,6 +13,26 @@ jobs:
     - name: Check out code
       uses: actions/checkout@v2
 
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.8'
+
+    - name: Install dependencies
+      run: |
+        pip install -r requirements.txt
+
+    - name: Package Lambda function
+      run: |
+        mkdir -p lambda_package
+        cp function.py lambda_package/
+        cd lambda_package
+        zip -r ../lambda_function.zip .
+        cd ..
+
+    - name: List files
+      run: ls -la
+
     - name: Set up AWS CLI
       uses: aws-actions/configure-aws-credentials@v1
       with:
@@ -24,16 +44,17 @@ jobs:
       run: |
         FUNCTION_NAME=lambda-notificacao-pedido-lanchonete
         ROLE_ARN=arn:aws:iam::980921738807:role/role-para-lambda
-        
+        ZIP_FILE_PATH=lambda_function.zip
+
         # Check if the function exists
         if aws lambda get-function --function-name $FUNCTION_NAME > /dev/null 2>&1; then
           echo "Updating existing Lambda function..."
-          aws lambda update-function-code --function-name $FUNCTION_NAME --zip-file fileb://lambda_function.zip
+          aws lambda update-function-code --function-name $FUNCTION_NAME --zip-file fileb://$ZIP_FILE_PATH
         else
           echo "Creating new Lambda function..."
           aws lambda create-function --function-name $FUNCTION_NAME \
-              --zip-file fileb://lambda_function.zip \
-              --handler nome_do_handler.handler \
+              --zip-file fileb://$ZIP_FILE_PATH \
+              --handler function.handler \
               --runtime python3.8 \
               --role $ROLE_ARN
         fi
