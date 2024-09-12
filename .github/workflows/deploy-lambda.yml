@@ -3,34 +3,37 @@ name: Deploy Lambda
 on:
   push:
     branches:
-      - main  # Ou a branch que você deseja usar
+      - main
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
+    - name: Check out code
+      uses: actions/checkout@v2
 
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.x'  # Versão do Python que sua função Lambda usa
+    - name: Set up AWS CLI
+      uses: aws-actions/configure-aws-credentials@v1
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ secrets.AWS_REGION }}
 
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
-
-      - name: Package Lambda function
-        run: |
-          zip -r lambda_function.zip . -x "*.git*"
-
-      - name: Deploy to AWS Lambda
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_REGION: ${{ secrets.AWS_REGION }}
-        run: |
-          aws lambda update-function-code --function-name lambda-notificacao-pedido-lanchonete --zip-file fileb://lambda_function.zip
+    - name: Create or Update Lambda Function
+      run: |
+        FUNCTION_NAME=lambda-notificacao-pedido-lanchonete
+        ROLE_ARN=arn:aws:iam::980921738807:role/role-para-lambda
+        
+        # Check if the function exists
+        if aws lambda get-function --function-name $FUNCTION_NAME > /dev/null 2>&1; then
+          echo "Updating existing Lambda function..."
+          aws lambda update-function-code --function-name $FUNCTION_NAME --zip-file fileb://lambda_function.zip
+        else
+          echo "Creating new Lambda function..."
+          aws lambda create-function --function-name $FUNCTION_NAME \
+              --zip-file fileb://lambda_function.zip \
+              --handler nome_do_handler.handler \
+              --runtime python3.8 \
+              --role $ROLE_ARN
+        fi
